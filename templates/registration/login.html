@@ -1,0 +1,49 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+
+    {% block content %}
+        <div class="cell">{% trans 'Login'%}</div>
+        <div class="inner">
+        {% if form.non_field_errors %}
+            <div class="alert alert-error alert-block">{{ form.non_field_errors }}</div>
+        {% endif %}
+            <form class="form-horizontal"  action="{% url 'login' %}" method="post">
+                {% csrf_token %}
+                {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                {% endif %}
+
+                <div class="control-group {% if form.username.errors %}error{% endif %}">
+                    <label class="control-label" for="id_username">{% trans 'Email'%}</label>
+                    <div class="controls">
+                        {{ form.username }}
+                    <span class="help-inline">
+                    {% if form.username.errors %}
+                        {% for error in form.username.errors %}{{ error }} {% endfor %}
+                    {% else %}
+                        {{ form.email.help_text }}
+                    {% endif %}
+                    </span> </div>
+                </div>
+
+                <div class="control-group {% if form.password.errors %}error{% endif %}">
+                    <label class="control-label" for="id_password">{% trans 'Password'%}</label>
+                    <div class="controls">
+                        {{ form.password }}
+                    <span class="help-inline">
+                    {% if form.password.errors %}
+                        {% for error in form.password.errors %}{{ error }} {% endfor %}
+                    {% else %}
+                        {{ form.password.help_text }}
+                    {% endif %}
+                    </span> </div>
+                </div>
+                <div class="form-actions">
+                    <input class="btn btn-middle btn-primary" type="submit" value="{% trans "Login"%}">
+                </div>
+            </form>
+        </div>
+        {% endblock %}
+
+
+
