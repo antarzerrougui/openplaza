@@ -24,6 +24,7 @@ DEBUG = True
 
 TEMPLATE_DEBUG = True
 
+
 ALLOWED_HOSTS = []
 
 
@@ -34,10 +35,11 @@ INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.sites',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'account',
+    'sites',
+    'catalog',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -97,9 +99,10 @@ STATIC_URL = '/static/'
 AUTH_USER_MODEL = 'account.User'
 
 # Custom User model
-AUTHENTICATION_BACKENDS = (
-    'account.backends.EmailAuthBackend',
-    'django.contrib.auth.backends.ModelBackend',
-)
+#AUTHENTICATION_BACKENDS = (
+#    'account.backends.EmailAuthBackend',
+#    'django.contrib.auth.backends.ModelBackend',
+#)
 
+MEDIA_ROOT = BASE_DIR+ '/media/'
 

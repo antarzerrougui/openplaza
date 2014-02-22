@@ -13,7 +13,7 @@ class UserCreationForm(UserCreationForm):
         'duplicate_username': _("A user with that username already exists."),
         'password_mismatch': _("The two password fields didn't match."),
         }
-    email = forms.EmailField(label=_("Email"), max_length=254)
+    email = forms.EmailField(label=_("Email"),help_text="Required.")
     class Meta:
         model = get_user_model()
         fields = ("email","username",)
@@ -43,15 +43,6 @@ class UserChangeForm(UserChangeForm):
     email = forms.EmailField(label=_("Email"),help_text="Required.")
     class Meta:
         model = get_user_model()
-
-    def clean_email(self):
-        UserModel = get_user_model()
-        email = self.cleaned_data["email"]
-        try:
-            UserModel.objects.get(email=email)
-        except User.DoesNotExist:
-            return email
-        raise forms.ValidationError(self.error_messages['duplicate_email'])
 
 class UserAdmin(UserAdmin):
     form = UserChangeForm
