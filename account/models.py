@@ -1,7 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser,UserManager
-from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
+from django.utils.translation import ugettext_lazy as _
+from directory.models import Country,CountryRegion
 
 class User(AbstractUser):
     AbstractUser._meta.get_field_by_name('email')[0]._unique = True
@@ -36,3 +37,25 @@ class UserManager(UserManager):
         user.set_password(password)
         user.save(using=self._db)
         return user
+
+
+class Address(models.Model):
+    customer = models.ForeignKey(User,blank=True,null=True)
+    firstname = models.CharField("First name",max_length=254)
+    lastname = models.CharField("Last name",max_length=254)
+    middlename = models.CharField("Middle name",max_length=254)
+    country = models.ForeignKey(Country,to_field = 'country_id')
+    region = models.CharField("Region",max_length=254)
+    region_id = models.ForeignKey(CountryRegion, blank=True,null=True)
+    postcode = models.CharField("Postcode",max_length=254)
+    city = models.CharField("City",max_length=254)
+    street = models.CharField("Street",max_length=254)
+    telephone = models.CharField("Telephone",max_length=64,blank=True,null=True)
+    fax = models.CharField("Fax",max_length=64,blank=True,null=True)
+    prefix = models.CharField("Prefix",max_length=64,blank=True,null=True)
+    suffix = models.CharField("Suffix",max_length=64,blank=True,null=True)
+    is_active = models.BooleanField("Is active",default=True)
+    created_at = updated_at = models.DateTimeField(_('Created At'),auto_now_add= True,null=True)
+    updated_at = models.DateTimeField(_('Updated At'),auto_now_add= True,null=True,blank=True)
+
+

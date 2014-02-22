@@ -4,7 +4,8 @@ from django.contrib.auth.forms import UserCreationForm,UserChangeForm
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth import get_user_model
-from .models import User
+from .models import User,Address
+from .forms import AddressModelForm
 
 
 class UserCreationForm(UserCreationForm):
@@ -60,5 +61,10 @@ class UserAdmin(UserAdmin):
             'fields': ('email','username', 'password1', 'password2')}
         ),
     )
+class AddressAdmin(admin.ModelAdmin):
+    form = AddressModelForm
 
+# Re-register UserAdmin
 admin.site.register(User, UserAdmin)
+
+admin.site.register(Address, AddressAdmin)

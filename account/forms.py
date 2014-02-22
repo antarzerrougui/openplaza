@@ -2,6 +2,12 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
 from django.utils.translation import ugettext_lazy as _
+from .models import Address
+
+
+class AddressModelForm(forms.ModelForm):
+    class meta:
+        model = Address
 
 class RegisterForm(forms.ModelForm):
     email = forms.EmailField(label= _('email'), help_text= _('Required.'))
