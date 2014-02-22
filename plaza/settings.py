@@ -109,3 +109,14 @@ AUTH_USER_MODEL = 'account.User'
 
 MEDIA_ROOT = BASE_DIR+ '/media/'
 
+
+WEBSITE_TYPE = (
+    ('magento', 'Magento'),
+    ('opencart', 'Opencart'),
+    ('amazon', 'Amazon'),
+    ('aliexpress', 'Aliexpress'),
+    ('ebay', 'Ebay'),
+    ('taobao', 'Taobao'),
+)
+
+
