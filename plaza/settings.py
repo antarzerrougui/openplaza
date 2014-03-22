@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+SITE_URL = "http://127.0.0.1:8118"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
@@ -42,7 +43,7 @@ INSTALLED_APPS = (
     'account',
     'catalog',
     'sales',
-
+    'aliexpress',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -70,8 +71,8 @@ DATABASES = {
 }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'), # Or path to database file if using sqlite3.
+        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'openplaza', # Or path to database file if using sqlite3.
         # The following settings are not used with sqlite3:
         'USER': 'root',
         'PASSWORD': '123456',
@@ -108,6 +109,15 @@ AUTH_USER_MODEL = 'account.User'
 #)
 
 MEDIA_ROOT = BASE_DIR+ '/media/'
+
+
+TEMPLATE_DIRS = (
+    '/home/age/Workspaces/Python/plaza/templates',
+    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
+
 
 
 WEBSITE_TYPE = (
