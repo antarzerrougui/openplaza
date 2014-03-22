@@ -4,7 +4,6 @@ from django.utils.encoding import StrAndUnicode, force_unicode
 from django.utils.html import escape, conditional_escape
 from .models import Category,Product
 
-
 class NodeWidget(widgets.Select):
     def render(self, name, value, attrs=None, choices=()):
         return []
@@ -31,7 +30,6 @@ class CategoryModelForm(ModelForm):
         widgets = {
             "parent_id" : widgets.TextInput
         }
-
 
 class ProductModelForm(ModelForm):
     class meta:
