@@ -1,4 +1,5 @@
 import json,time,sys
+import StringIO
 import httplib2,urllib,requests
 import hmac,hashlib
 from urlparse import urlparse,parse_qs,urljoin,urlunparse
@@ -10,57 +11,83 @@ class Aliexpress(object):
     def __init__(self,client_id,client_secret):
         self.http = httplib2.Http()
         self.client_id =client_id
-        self.requests = requests
         self.client_secret = client_secret
         self.post_headers = {'Content-type': 'application/x-www-form-urlencoded'}
         self.upload_headers = {'Content-type': 'multipart/form-data'}
 
-    def post_product(self,access_token,product_data):
+
+    def get_shipping_templates(self,access_token):
+        timestamp = time.time()*1000.0
+        api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.listFreightTemplate/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
+        signature_url = self.get_aop_signature(api_url)
+        r = requests.post(api_url)
+        if r.status_code == 200:
+            response = json.loads(r.text)
+            if "success" in response:
+                templates = response['aeopFreightTemplateDTOList']
+                return templates
+            #print(r.text)
+
+
+    def upload_product(self,access_token,product_data):
         timestamp = time.time()*1000.0
 
-        access_token = '002f9182-2931-4769-9633-cab2237c0c3a'
+        #access_token = '002f9182-2931-4769-9633-cab2237c0c3a'
         api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.postAeProduct/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
 
+
+        image = self.upload_temp_image(access_token,'http://www.digimotor.com/media/catalog/product/d/a/davina_product.jpg','davina.jpg')
+
+        shipping_templates = self.get_shipping_templates(access_token)
         product_data = {
             'detail' : '<a href="">description</a>',
             'deliveryTime' : 3,
             'promiseTemplateId':1,
-            'categoryId' : 200003446,
+            'categoryId' : 200000377,
             'subject' : 'long wave wig',
             'keyword' : 'long wave wig',
             'productMoreKeywords1':'long wave wig',
             'productMoreKeywords2':'long wave wig',
             'productPrice': '199.99',
-            'freightTemplateId' : 1,
+            'freightTemplateId' : shipping_templates[2]['templateId'],
             'isImageWatermark' : 'false',
-            'imageURLs':'http://www.digimotor.com/media/catalog/product/d/a/davina_product.jpg',
+            'imageURLs':image,
+            'aeopAeProductSKUs':[],
             'productUnit':'100000015',
             'packageType' : "false",
-            'packageLength' : 100,
-            'packageWidth':100,
-            'packageHeight' : 100,
+            'packageLength' : 35,
+            'packageWidth':54,
+            'packageHeight' : 50,
             'grossWeight' : 0.2,
             'wsValidNum':30
 
         }
         signature_url = self.get_aop_signature(api_url,data=product_data)
 
-        headers,content = self.http.request(signature_url, "POST",headers=self.post_headers)
-        content = json.loads(content)
+        r = requests.post(signature_url,headers=self.post_headers)
+        content = json.loads(r.text)
 
 
         print(content)
 
 
-    def upload_temp_image(self,access_token,filename):
+    def upload_temp_image(self,access_token,src_file,filename):
         timestamp = time.time()*1000.0
         api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.uploadTempImage/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
         signature_url = self.get_aop_signature(api_url,data={'srcFileName':filename})
+        if src_file:
+            r = requests.get(src_file,stream=True)
+            with open(filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1024):
+                    if chunk: # filter out keep-alive new chunks
+                        f.write(chunk)
+                        f.flush()
 
-        header,content = self.http.request('http://www.digimotor.com/media/wysiwyg/Banner/banner_2.jpg')
-
-        headers,content = self.http.request(signature_url, "POST",body=content, headers=self.upload_headers)
-        print(content)
+        r = requests.post(signature_url,data=open(filename,'rb'))
+        if r.status_code == 200:
+            response = json.loads(r.text)
+            if "success" in response and response['success'] == True:
+                return response['url']
 
 
     def get_category_by_id(self,access_token,id):
@@ -68,8 +95,8 @@ class Aliexpress(object):
         api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.getPostCategoryById/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
         signature_url = self.get_aop_signature(api_url,data={'cateId':id})
 
-        headers,content = self.http.request(signature_url, "POST", headers=self.post_headers)
-        print(content)
+        r = requests.post(signature_url,headers=self.post_headers)
+        print(r.text)
 
     def get_recommend_category_by_keyword(self,access_token,keyword):
         timestamp = time.time()*1000.0
@@ -77,15 +104,13 @@ class Aliexpress(object):
 
         signature_url = self.get_aop_signature(api_url,data={'keyword':keyword})
         #print(signature_url)
-        headers,content = self.http.request(signature_url, "POST", headers=self.post_headers)
+
+        r = requests.post(signature_url, headers=self.post_headers)
 
 
-        content = json.loads(content)
+        content = json.loads(r.text)
         if "success" in content and content['success'] == True:
             for c in content['cateogryIds']:
-
-
-
                 self.get_category_by_id(access_token,c)
 
 
@@ -131,7 +156,7 @@ class Aliexpress(object):
         auth_url = 'http://gw.api.alibaba.com/auth/authorize.htm?client_id=%s&site=aliexpress&redirect_uri=%s'%(self.client_id,redirect_url)
         signature_url = self.get_aop_signature(auth_url, is_auth=True)
 
-        r = self.requests.get(signature_url)
+        r = requests.get(signature_url)
 
         #headers,content = self.http.request(signature_url,"GET")
         if r.status_code == 200:
@@ -142,14 +167,9 @@ class Aliexpress(object):
 
             fields['account'] = account
             fields['password'] = password
-
-            #self.post_headers['Cookie']= headers['set-cookie']
-
-            r = r.post(signature_url,data = fields,headers=self.post_headers)
-
-            if r.status_code == 302:
-                headers,content = self.http.request(headers['location'], "GET")
-                return content
+            r = requests.post(signature_url,data = fields,headers=self.post_headers,cookies=r.cookies)
+            if r.status_code == 200:
+                return r.text
 
 
 
@@ -159,7 +179,7 @@ class Aliexpress(object):
         else:
             token_url = "https://gw.api.alibaba.com/openapi/http/1/system.oauth2/getToken/%s?grant_type=authorization_code&need_refresh_token=true&client_id=%s&client_secret=%s&redirect_uri=%s&code=%s"%(self.client_id,self.client_id,self.client_secret,redirect_url,code)
 
-        r = self.requests.post(token_url,headers=self.post_headers)
+        r = requests.post(token_url,headers=self.post_headers)
         if r.status_code == 200:
             response = json.loads(r.text)
             if "access_token" in response:
@@ -179,6 +199,6 @@ if __name__ == "__main__":
     access_token = access_token['access_token']
     print(access_token)
 
-    #ali.upload_temp_image(access_token,'banner.jpg')
-    #ali.get_recommend_category_by_keyword(access_token,'long wave wig')
-    #ali.post_product(access_token ,{})
+    #ali.upload_temp_image(access_token,"",'/home/age/Workspaces/Python/plaza/aliexpress/banner.jpg')
+    ali.get_recommend_category_by_keyword(access_token,'car cables')
+    ali.upload_product(access_token ,{})
