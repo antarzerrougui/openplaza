@@ -226,8 +226,8 @@ class Aliexpress(object):
                 }
                 #print(product_data)
                 uploaded_product = self.upload_product(access_token,product_data)
+                print(uploaded_product)
                 uploaded_product['sku'] = product['sku']
-                uploaded_product['uploaded_at'] = time.strftime("%Y-%m-%d %H:%M:%S")
                 return uploaded_product
 
             except Exception as e:
