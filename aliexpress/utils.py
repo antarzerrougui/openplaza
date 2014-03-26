@@ -1,9 +1,13 @@
-import json,time,sys
+import json,time,sys,os
 import StringIO
 import httplib2,urllib,requests
 import hmac,hashlib
 from urlparse import urlparse,parse_qs,urljoin,urlunparse
 from BeautifulSoup import BeautifulSoup
+
+from magento import MagentoAPI
+
+from django.conf import settings
 
 
 
@@ -35,55 +39,35 @@ class Aliexpress(object):
         #access_token = '002f9182-2931-4769-9633-cab2237c0c3a'
         api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.postAeProduct/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
 
-
-        image = self.upload_temp_image(access_token,'http://www.digimotor.com/media/catalog/product/d/a/davina_product.jpg','davina.jpg')
-
-        shipping_templates = self.get_shipping_templates(access_token)
-        product_data = {
-            'detail' : '<a href="">description</a>',
-            'deliveryTime' : 3,
-            'promiseTemplateId':1,
-            'categoryId' : 200000377,
-            'subject' : 'long wave wig',
-            'keyword' : 'long wave wig',
-            'productMoreKeywords1':'long wave wig',
-            'productMoreKeywords2':'long wave wig',
-            'productPrice': '199.99',
-            'freightTemplateId' : shipping_templates[2]['templateId'],
-            'isImageWatermark' : 'false',
-            'imageURLs':image,
-            'aeopAeProductSKUs':[],
-            'productUnit':'100000015',
-            'packageType' : "false",
-            'packageLength' : 35,
-            'packageWidth':54,
-            'packageHeight' : 50,
-            'grossWeight' : 0.2,
-            'wsValidNum':30
-
-        }
         signature_url = self.get_aop_signature(api_url,data=product_data)
+        print(signature_url)
 
         r = requests.post(signature_url,headers=self.post_headers)
-        content = json.loads(r.text)
+        if r.status_code == 200:
 
+            content = json.loads(r.text)
+            return content
 
-        print(content)
 
 
     def upload_temp_image(self,access_token,src_file,filename):
         timestamp = time.time()*1000.0
         api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.uploadTempImage/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
+        filename = os.path.basename(filename)
+
+        media_path =  os.path.dirname(os.path.dirname(__file__)) + '/media/'
+
+
         signature_url = self.get_aop_signature(api_url,data={'srcFileName':filename})
         if src_file:
             r = requests.get(src_file,stream=True)
-            with open(filename, 'wb') as f:
+            with open(os.path.join(media_path,filename), 'wb') as f:
                 for chunk in r.iter_content(chunk_size=1024):
                     if chunk: # filter out keep-alive new chunks
                         f.write(chunk)
                         f.flush()
 
-        r = requests.post(signature_url,data=open(filename,'rb'))
+        r = requests.post(signature_url,data=open(os.path.join(media_path,filename),'rb'))
         if r.status_code == 200:
             response = json.loads(r.text)
             if "success" in response and response['success'] == True:
@@ -109,10 +93,9 @@ class Aliexpress(object):
 
 
         content = json.loads(r.text)
-        if "success" in content and content['success'] == True:
-            for c in content['cateogryIds']:
-                self.get_category_by_id(access_token,c)
 
+        if "success" in content and content['success'] == True:
+            return content['cateogryIds']
 
     def get_aop_signature(self,url,is_auth = False,data = None):
         """_aop_signature"""
@@ -146,7 +129,9 @@ class Aliexpress(object):
             _parsed_query[q] = parsed_query[q][0]
 
         _query = urllib.urlencode(_parsed_query)
-        _query = urllib.unquote(_query)
+
+        #_query = urllib.unquote(_query)
+        #print(type(_query))
         _url_path = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path,None, _query, None))
         return _url_path
 
@@ -188,17 +173,80 @@ class Aliexpress(object):
 
 
 
+    def magento(self,access_token,api,user,passwd,port = 80,path = '/api/xmlrpc'):
+        magento = MagentoAPI(api,port,user,passwd,path=path)
+        #print(magento.help())
 
+        categories = magento.catalog_category.tree()
+        uploaded_categories_ids = {}
+        for c in categories['children'][0]['children']:
+            uploaded_categories_ids[c['category_id']] = c['name']
+
+
+        products = magento.catalog_product.list()
+        shipping_templates = self.get_shipping_templates(access_token)
+        for p in products:
+            try:
+
+                product = magento.catalog_product.info(p['sku'])
+                images = magento.catalog_product_attribute_media.list(p['sku'])
+                #print(images)
+
+                default_category_name = uploaded_categories_ids[product['categories'][0]]
+
+
+                categoriesIds = self.get_recommend_category_by_keyword(access_token,default_category_name)
+
+                uploaded_images = []
+                for i in images:
+                    uploaded_images.append(self.upload_temp_image(access_token,i['url'],i['file']))
+                    break
+
+                product_data = {
+                    'detail' : product['description'],
+                    'deliveryTime' : 3,
+                    'promiseTemplateId':1,
+                    'categoryId' : categoriesIds[0],
+                    'subject' : product['name'],
+                    'keyword' : product['name'],
+                    'productMoreKeywords1':'free shipping ' + product['name'],
+                    'productMoreKeywords2':product['short_description'],
+                    'productPrice': product['price'],
+                    'freightTemplateId' : shipping_templates[2]['templateId'],
+                    'isImageWatermark' : 'false',
+                    'imageURLs':";".join(uploaded_images),
+                    #'aeopAeProductSKUs':[],
+                    'productUnit':'100000015',
+                    'packageType' : "false",
+                    'packageLength' : 60,
+                    'packageWidth':60,
+                    'packageHeight' : 60,
+                    'grossWeight' : float(product['weight']) / 1000.0,
+                    'wsValidNum':30
+                }
+                #print(product_data)
+                uploaded_product = self.upload_product(access_token,product_data)
+                uploaded_product['sku'] = product['sku']
+                uploaded_product['uploaded_at'] = time.strftime("%Y-%m-%d %H:%M:%S")
+                return uploaded_product
+
+            except Exception as e:
+                print(e)
+                continue
+            #exit()
 
 if __name__ == "__main__":
     reload(sys)
     sys.setdefaultencoding('utf8')
     ali = Aliexpress('6456454','1kQ00Y3wgg')
+
     access_token = ali.get_token('953274e8-68a0-41d3-881f-92c1d70a5bf5',is_refresh= True)
-
     access_token = access_token['access_token']
-    print(access_token)
+    #print(access_token)
+    ali.magento(access_token)
+    #
+    #print(access_token)
 
-    #ali.upload_temp_image(access_token,"",'/home/age/Workspaces/Python/plaza/aliexpress/banner.jpg')
-    ali.get_recommend_category_by_keyword(access_token,'car cables')
-    ali.upload_product(access_token ,{})
+
+    #ali.get_recommend_category_by_keyword(access_token,'car cables')
+    #ali.upload_product(access_token ,{})
