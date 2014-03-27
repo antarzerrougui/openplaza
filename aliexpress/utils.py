@@ -1,5 +1,5 @@
 import json,time,sys,os
-import StringIO
+import copy
 import httplib2,urllib,requests
 import hmac,hashlib
 from urlparse import urlparse,parse_qs,urljoin,urlunparse
@@ -39,10 +39,11 @@ class Aliexpress(object):
         #access_token = '002f9182-2931-4769-9633-cab2237c0c3a'
         api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.postAeProduct/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
 
-        signature_url = self.get_aop_signature(api_url,data=product_data)
-        print(signature_url)
+        signature_url = self.get_aop_signature(api_url,data=product_data,is_product=True)
+        #print(signature_url)
 
-        r = requests.post(signature_url,headers=self.post_headers)
+        r = requests.post(signature_url,data = product_data)
+        print(r.text)
         if r.status_code == 200:
 
             content = json.loads(r.text)
@@ -79,7 +80,7 @@ class Aliexpress(object):
         api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.getPostCategoryById/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
         signature_url = self.get_aop_signature(api_url,data={'cateId':id})
 
-        r = requests.post(signature_url,headers=self.post_headers)
+        r = requests.post(signature_url, data= {'cateId':id},headers=self.post_headers)
         print(r.text)
 
     def get_recommend_category_by_keyword(self,access_token,keyword):
@@ -89,7 +90,7 @@ class Aliexpress(object):
         signature_url = self.get_aop_signature(api_url,data={'keyword':keyword})
         #print(signature_url)
 
-        r = requests.post(signature_url, headers=self.post_headers)
+        r = requests.post(signature_url, data={'keyword':keyword}, headers=self.post_headers)
 
 
         content = json.loads(r.text)
@@ -97,11 +98,12 @@ class Aliexpress(object):
         if "success" in content and content['success'] == True:
             return content['cateogryIds']
 
-    def get_aop_signature(self,url,is_auth = False,data = None):
+    def get_aop_signature(self,url,is_auth = False,data = None, is_product = False):
         """_aop_signature"""
         parsed_url = urlparse(url)
-        parsed_query = parse_qs(parsed_url.query)
-
+        default_parsed_query = parsed_query = parse_qs(parsed_url.query)
+        if is_product:
+            default_parsed_query = copy.deepcopy(parsed_query)
         if data and isinstance(data,dict):
             for k,v in data.iteritems():
                 parsed_query.update({k:[str(v)]})
@@ -125,11 +127,11 @@ class Aliexpress(object):
         parsed_query['_aop_signature'] = [aop_signature,]
 
         _parsed_query = {}
-        for q in parsed_query:
-            _parsed_query[q] = parsed_query[q][0]
+        for q in default_parsed_query:
+            _parsed_query[q] = default_parsed_query[q][0]
 
         _query = urllib.urlencode(_parsed_query)
-
+        #print(_query)
         #_query = urllib.unquote(_query)
         #print(type(_query))
         _url_path = urlunparse((parsed_url.scheme, parsed_url.netloc, parsed_url.path,None, _query, None))
@@ -235,10 +237,17 @@ class Aliexpress(object):
                 continue
             #exit()
 
+    def test(self):
+        print(5/2)
+
 if __name__ == "__main__":
     reload(sys)
     sys.setdefaultencoding('utf8')
     ali = Aliexpress('6456454','1kQ00Y3wgg')
+
+    ali.test()
+
+    exit()
 
     access_token = ali.get_token('953274e8-68a0-41d3-881f-92c1d70a5bf5',is_refresh= True)
     access_token = access_token['access_token']
