@@ -1,4 +1,4 @@
-import json,time,sys,os
+import json,time,sys,os,re
 import copy
 import httplib2,urllib,requests
 import hmac,hashlib
@@ -173,6 +173,30 @@ class Aliexpress(object):
                 return response
 
 
+    def remove_brands(self,title):
+        with open('brands.txt','r') as fp:
+            brands = fp.readlines()
+            brands = [b.replace("\n","").replace("-","\-").strip() for b in brands]
+            brands = "|".join(brands)
+            #print(r"brands")
+            brands_compiler = re.compile(r"("+brands+")+?",re.IGNORECASE)
+
+
+            brands_title = ""
+            matchs = brands_compiler.findall(title)
+            if matchs:
+                matchs = set(matchs)
+                for m in matchs:
+                    title = title.replace(m,'')
+
+
+                brands_title = " for " + " ".join(matchs)
+
+            title = title + brands_title
+            title = re.sub( '\s+', ' ', title).strip()
+
+            return title
+
 
 
     def magento(self,access_token,api,user,passwd,port = 80,path = '/api/xmlrpc'):
@@ -238,7 +262,32 @@ class Aliexpress(object):
             #exit()
 
     def test(self):
-        print(5/2)
+        with open('brands.txt','r') as fp:
+            brands = fp.readlines()
+            brands = [b.replace("\n","").replace("-","\-").strip() for b in brands]
+            brands = "|".join(brands)
+            #print(r"brands")
+            brands_compiler = re.compile(r"("+brands+")+?",re.IGNORECASE)
+
+            tet = " AUGOCOM BMW N20 N55 Engine Oil Head Removal Tool"
+            brands_title = ""
+            matchs = brands_compiler.findall(tet)
+            if matchs:
+                matchs = set(matchs)
+                for m in matchs:
+                    tet = tet.replace(m,'')
+
+
+                brands_title = " for " + " ".join(matchs)
+
+            tet = tet + brands_title
+            tet = re.sub( '\s+', ' ', tet).strip()
+
+            print(tet)
+
+
+
+
 
 if __name__ == "__main__":
     reload(sys)
