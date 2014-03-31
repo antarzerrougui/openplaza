@@ -19,6 +19,20 @@ class Aliexpress(object):
         self.post_headers = {'Content-type': 'application/x-www-form-urlencoded'}
         self.upload_headers = {'Content-type': 'multipart/form-data'}
 
+        with open('brands.txt','r') as fp:
+            brands = fp.readlines()
+            brands = [b.replace("\n","").replace("-","\-").strip() for b in brands]
+            brands = "|".join(brands)
+            #print(r"brands")
+            self.brands_compiler = re.compile(r"("+brands+")+?",re.IGNORECASE)
+
+        with open('remove.txt','r') as fp:
+            brands = fp.readlines()
+            brands = [b.replace("\n","").strip() for b in brands]
+            self.brands = brands
+
+
+
 
     def get_shipping_templates(self,access_token):
         timestamp = time.time()*1000.0
@@ -174,28 +188,26 @@ class Aliexpress(object):
 
 
     def remove_brands(self,title):
-        with open('brands.txt','r') as fp:
-            brands = fp.readlines()
-            brands = [b.replace("\n","").replace("-","\-").strip() for b in brands]
-            brands = "|".join(brands)
-            #print(r"brands")
-            brands_compiler = re.compile(r"("+brands+")+?",re.IGNORECASE)
 
 
-            brands_title = ""
-            matchs = brands_compiler.findall(title)
-            if matchs:
-                matchs = set(matchs)
-                for m in matchs:
-                    title = title.replace(m,'')
+        brands_title = ""
+        matchs = self.brands_compiler.findall(title)
+        if matchs:
+            matchs = set(matchs)
+            for m in matchs:
+                title = title.replace(m,'')
 
-
-                brands_title = " for " + " ".join(matchs)
+            brands_title = " for " + " ".join(matchs)
 
             title = title + brands_title
-            title = re.sub( '\s+', ' ', title).strip()
 
-            return title
+
+        if self.brands:
+            for b in self.brands:
+                title = title.replace(b,"")
+
+        title = re.sub( '\s+', ' ', title).strip()
+        return title
 
 
 
