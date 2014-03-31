@@ -21,7 +21,6 @@ class NodeWidget(widgets.Select):
                 output.append(self.render_option(selected_choices, option_value, option_label))
         return u'\n'.join(output)
 
-
 class CategoryModelForm(ModelForm):
     #parent_node_id = ModelChoiceField(widget = NodeWidget)
     exclude = ('parent_id',)
