@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% load i18n %}
+{% block title %}{{ title }}{% endblock %}
+
+    {% block content %}
+        <div class="cell">{% trans 'Upload'%}</div>
+        <div class="inner">
+        {% if form.non_field_errors %}
+            <div class="alert alert-error alert-block">{{ form.non_field_errors }}</div>
+        {% endif %}
+            <form class="form-horizontal"  action="{% url 'aliexpress-upload-taobao' %}" method="post">
+                {% csrf_token %}
+
+                    <div class="control-group {% if form.links.errors %}error{% endif %}">
+                    <label class="control-label" for="id_links">{% trans 'links'%}</label>
+                    <div class="controls">
+                        {{ form.links }}
+                    <span class="help-inline">
+                    {% if form.links.errors %}
+                        {% for error in form.links.errors %}{{ error }} {% endfor %}
+                    {% else %}
+                        {{ form.links.help_text }}
+                    {% endif %}
+                    </span> </div>
+                </div>
+
+                <div class="control-group {% if form.username.errors %}error{% endif %}">
+                    <label class="control-label" for="id_account">{% trans 'Email'%}</label>
+                    <div class="controls">
+                        {{ form.account }}
+                    <span class="help-inline">
+                    {% if form.account.errors %}
+                        {% for error in form.account.errors %}{{ error }} {% endfor %}
+                    {% else %}
+                        {{ form.email.help_text }}
+                    {% endif %}
+                    </span> </div>
+                </div>
+
+                <div class="control-group {% if form.password.errors %}error{% endif %}">
+                    <label class="control-label" for="id_password">{% trans 'Site'%}</label>
+                    <div class="controls">
+                        {{ form.site }}
+                    <span class="help-inline">
+                    {% if form.site.errors %}
+                        {% for error in form.site.errors %}{{ error }} {% endfor %}
+                    {% else %}
+                        {{ form.site.help_text }}
+                    {% endif %}
+                    </span> </div>
+                </div>
+                <div class="form-actions">
+                    <input class="btn btn-middle btn-primary" type="submit" value="{% trans "Login"%}">
+                </div>
+            </form>
+        </div>
+        {% endblock %}
+
+
+

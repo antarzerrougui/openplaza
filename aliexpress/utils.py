@@ -64,6 +64,35 @@ class Aliexpress(object):
             return content
 
 
+    def upload_image(self,access_token,src_file,filename,group_id = ""):
+        timestamp = time.time()*1000.0
+        api_url = "https://gw.api.alibaba.com:443/openapi/param2/1/aliexpress.open/api.uploadImage/%s?access_token=%s&_aop_timestamp=%d"%(self.client_id,access_token,timestamp)
+        filename = os.path.basename(filename)
+        media_path =  os.path.dirname(os.path.dirname(__file__)) + '/media/'
+
+        upload_data = {
+            'fileName':filename
+        }
+        if group_id:
+            upload_data['groupId'] = group_id
+
+        signature_url = self.get_aop_signature(api_url,data=upload_data)
+        if src_file:
+            r = requests.get(src_file,stream=True)
+            with open(os.path.join(media_path,filename), 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1024):
+                    if chunk: # filter out keep-alive new chunks
+                        f.write(chunk)
+                        f.flush()
+        r = requests.post(signature_url,data=open(os.path.join(media_path,filename),'rb'))
+        if r.status_code == 200:
+            response = json.loads(r.text)
+            if "success" in response and response['success'] == True:
+                return response['photobankUrl']
+
+
+
+
 
     def upload_temp_image(self,access_token,src_file,filename):
         timestamp = time.time()*1000.0
@@ -273,6 +302,15 @@ class Aliexpress(object):
                 continue
             #exit()
 
+    def taobao(self,access_token,link):
+        link = 'http://detail.1688.com/offer/1279983379.html'
+        r = requests.get(link)
+        print(r.text)
+        if r.status_code == 200:
+            main_wrap = BeautifulSoup(r.text)
+            title = main_wrap.find('h1').text
+
+
     def test(self):
         with open('brands.txt','r') as fp:
             brands = fp.readlines()
@@ -306,7 +344,7 @@ if __name__ == "__main__":
     sys.setdefaultencoding('utf8')
     ali = Aliexpress('6456454','1kQ00Y3wgg')
 
-    ali.test()
+    ali.taobao('953274e8-68a0-41d3-881f-92c1d70a5bf5','ss')
 
     exit()
 
