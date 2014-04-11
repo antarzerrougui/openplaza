@@ -9,6 +9,8 @@ from magento import MagentoAPI
 
 from django.conf import settings
 
+import goslate,hashlib
+
 
 
 class Aliexpress(object):
@@ -18,6 +20,7 @@ class Aliexpress(object):
         self.client_secret = client_secret
         self.post_headers = {'Content-type': 'application/x-www-form-urlencoded'}
         self.upload_headers = {'Content-type': 'multipart/form-data'}
+        self.translator = goslate.Goslate()
 
         with open('brands.txt','r') as fp:
             brands = fp.readlines()
@@ -303,12 +306,85 @@ class Aliexpress(object):
             #exit()
 
     def taobao(self,access_token,link):
-        link = 'http://detail.1688.com/offer/1279983379.html'
+        #link = 'http://detail.1688.com/offer/1279983379.html'
+        link = 'http://detail.1688.com/offer/38079280971.html'
         r = requests.get(link)
-        print(r.text)
+        #print(r.text)
         if r.status_code == 200:
             main_wrap = BeautifulSoup(r.text)
             title = main_wrap.find('h1').text
+            price_range = main_wrap.findAll('tr',attrs={'data-range': re.compile(r"\{.*\}")})
+            price = 0
+            for p in price_range:
+                #print(p['data-range'])
+                data_range = eval(p['data-range'])
+                price = float(data_range['price']) + 10.0
+                break
+
+            description = ""
+            description_url = main_wrap.find('div',attrs={'id':'desc-lazyload-container'})
+            if description_url:
+                r = requests.get(description_url['data-tfs-url'])
+                if r.status_code == 200 :
+                    description = r.text.replace("var desc='","").replace("';","")
+
+
+            featured = main_wrap.findAll("td",attrs={'class':'de-feature'})
+
+            featured_text = ""
+
+            for f in featured:
+
+                featured_text += f.text + "<br/>"
+
+            description =  featured_text + description
+
+            #print(description)
+            description_images = []
+            description_wrap = BeautifulSoup(description)
+            description_image_wrap = description_wrap.findAll('img')
+            media_files = {}
+            for i in description_image_wrap:
+
+                file_md5 =  hashlib.md5(i['src']).hexdigest()
+                media_files[file_md5] = i['src']
+
+                description = description.replace(str(i),file_md5)
+
+                description_images.append([i['src'],os.path.basename(i['src'])])
+            #print(description_images)
+            #ds = os.path.basename('http://img.china.alibaba.com/img/ibank/2013/664/045/936540466_814969686.jpg')
+            print(description)
+            gallery_container_wrap = main_wrap.find('div',attrs={'id':'dt-tab'})
+            if gallery_container_wrap:
+
+                gallery_container = gallery_container_wrap.findAll('div',attrs={'class':'vertical-img'})
+            else :
+                gallery_container = main_wrap.findAll('a',attrs={'trace':'largepic'})
+            gallery = []
+            for _container in gallery_container:
+                _image = _container.find('img')['src'].replace("64x64.","").replace("310x310.","")
+
+
+                gallery.append([_image,os.path.basename(_image)])
+
+
+
+            title = self.translator.translate(title,'en','cn')
+
+
+
+            description =  self.translator.translate(description,'en','cn')
+
+            for md,img in media_files.iteritems():
+                description = description.replace(md,'<img src="'+img+'" />')
+            description = BeautifulSoup(description).prettify()
+            #print(description)
+
+            return {'title':title,'description':description,'description_images':description_images,'gallery':gallery,'price':price}
+
+
+
 
 
     def test(self):
