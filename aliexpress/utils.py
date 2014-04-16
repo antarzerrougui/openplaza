@@ -337,7 +337,7 @@ class Aliexpress(object):
 
                 featured_text += f.text + "<br/>"
 
-            description =  featured_text + description
+            description =  featured_text + descriptionwww.sweety16.com
 
             #print(description)
             description_images = []
